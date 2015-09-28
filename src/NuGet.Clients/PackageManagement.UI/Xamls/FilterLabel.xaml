@@ -1,0 +1,54 @@
+﻿<UserControl x:Class="NuGet.PackageManagement.UI.FilterLabel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:NuGet.PackageManagement.UI"
+             mc:Ignorable="d"
+             d:DesignHeight="100" d:DesignWidth="300">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto" />
+      <RowDefinition Height="auto" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition />
+      <ColumnDefinition />
+    </Grid.ColumnDefinitions>
+    <Button
+      Grid.Row="0"
+      Grid.Column="0"      
+      Click="ButtonClicked">
+      <Button.Template>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <ContentPresenter />
+        </ControlTemplate>
+      </Button.Template>
+      <TextBlock 
+        x:Name="_labelText" 
+        MouseEnter="_labelText_MouseEnter"
+        MouseLeave="_labelText_MouseLeave"
+        Foreground="{DynamicResource {x:Static local:Brushes.UIText}}"/>
+    </Button>
+    <TextBlock
+      x:Name="_textBlockCount"
+      Grid.Row="0"
+      Grid.Column="1"
+      Foreground="White"
+      FontSize="8"
+      Height="10"
+      Visibility="Hidden"
+      Padding="2,0"
+      Background="#FF3399FF"
+      HorizontalAlignment="Right"
+      VerticalAlignment="Top">
+    </TextBlock>
+    <Rectangle
+      x:Name="_underline"
+      Grid.Row="1"
+      Grid.Column="0"
+      Height="4"
+      Fill="#FFA5C9F3"
+      Visibility="Hidden" />
+  </Grid>
+</UserControl>
