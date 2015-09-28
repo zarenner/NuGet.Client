@@ -1,3 +1,6 @@
+# Ignore the file that is auto generated
+src/NuGet.Clients/VsConsole/PowerShellHost/DebugConstants.cs
+
 # NuGet Files
 *.nuget.targets
 *.nuget.props
