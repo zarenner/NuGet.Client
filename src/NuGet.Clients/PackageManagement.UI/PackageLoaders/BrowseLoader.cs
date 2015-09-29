@@ -24,7 +24,7 @@ namespace NuGet.PackageManagement.UI
         private SourceRepository _sourceRepository;
         private string _searchText;
         private List<NuGetProject> _projects;
-        private Dictionary<string, List<NuGetVersion>> _installedPackages;
+        private InstalledPackages _installedPackages;
         private bool _includePrerelease;
         private InstalledPackagesLoader _installedPackageLoader;
 
@@ -72,9 +72,9 @@ namespace NuGet.PackageManagement.UI
                 searchResultPackage.Author = package.Author;
                 searchResultPackage.DownloadCount = package.DownloadCount;
 
-                if (_installedPackages.ContainsKey(searchResultPackage.Id))
+                var installedVersions = _installedPackages.GetVersions(searchResultPackage.Id);
+                if (installedVersions != null)
                 {
-                    var installedVersions = _installedPackages[searchResultPackage.Id];
                     if (installedVersions.Count > 1)
                     {
                         //!!! what should we do here?
@@ -135,13 +135,14 @@ namespace NuGet.PackageManagement.UI
         // Load info in the background
         private async Task<BackgroundLoaderResult> BackgroundLoad(string id, Lazy<Task<IEnumerable<VersionInfo>>> versions)
         {
-            if (_installedPackages.ContainsKey(id))
+            var installedVersions = _installedPackages.GetVersions(id);
+            if (installedVersions != null)
             {
                 var versionsUnwrapped = await versions.Value;
                 var highestAvailableVersion = versionsUnwrapped
                     .Select(v => v.Version)
                     .Max();
-                var lowestInstalledVersion = _installedPackages[id].First();
+                var lowestInstalledVersion = installedVersions.First();
 
                 if (VersionComparer.VersionRelease.Compare(lowestInstalledVersion, highestAvailableVersion) < 0)
                 {

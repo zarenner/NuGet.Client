@@ -53,11 +53,6 @@ namespace NuGet.PackageManagement.UI
 
         private BrowseLoader _browseLoader;
         private InstalledLoader _installedLoader;
-
-        /* !!!
-        private ILoader _installedLoader;
-        private ILoader _updatesAvailableLoader; */
-
             
         public PackageManagerControl(
             PackageManagerModel model,
@@ -111,10 +106,18 @@ namespace NuGet.PackageManagement.UI
             // Create Loaders
             // !!!
             _browseLoader = new BrowseLoader();
-            _installedLoader = new InstalledLoader();
-            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
 
-            // UI is initialized. Start the first search
+            // create installed loader and start loading 
+            // in the background
+            _installedLoader = new InstalledLoader();
+            _installedLoader.StartLoadTask(
+                _installedPackagesLoader,
+                ActiveSource,
+                Model.Context.PackageManager,
+                IncludePrerelease,
+                _windowSearchHost.SearchQuery.SearchString);
+
+            // Start the first search
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
             RefreshAvailableUpdatesCount();
 
@@ -133,18 +136,6 @@ namespace NuGet.PackageManagement.UI
             }
 
             _missingPackageStatus = false;
-        }
-
-        private void StartInstallerLoader(string searchText)
-        {
-            _installedLoader.SetOptions(
-                IncludePrerelease,
-                ActiveSource,
-                Model.Context.PackageManager,
-                Model.Context.Projects,
-                _installedPackagesLoader,
-                searchText);
-            _installedLoader.StartLoadTask();
         }
 
         public PackageRestoreBar RestoreBar => _restoreBar;
@@ -256,9 +247,7 @@ namespace NuGet.PackageManagement.UI
                             ActiveSource.PackageSource.Source)))
                 {
                     SaveSettings();
-                    StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
-                    SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
-                    RefreshAvailableUpdatesCount();
+                    RefreshAfterActiveSourceOrIncludePrereleaseChanged();
                 }
             }
             finally
@@ -650,9 +639,8 @@ namespace NuGet.PackageManagement.UI
 
                 Model.Context.SourceProvider.PackageSourceProvider.SaveActivePackageSource(ActiveSource.PackageSource);
                 SaveSettings();
-                StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
-                SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
-                RefreshAvailableUpdatesCount();
+
+                RefreshAfterActiveSourceOrIncludePrereleaseChanged();
             }
         }
 
@@ -664,8 +652,71 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
+        private void RefreshAfterActiveSourceOrIncludePrereleaseChanged()
+        {
+            // !!!
+            _installedLoader.StartLoadTask(
+                ActiveSource,
+                Model.Context.PackageManager,
+                IncludePrerelease,
+                _windowSearchHost.SearchQuery.SearchString);
+            SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
+            RefreshAvailableUpdatesCount();
+        }        
+
+        private void RefreshAfterSearchTextChanged()
+        {
+            // !!!
+            _installedLoader.StartLoadTask(_windowSearchHost.SearchQuery.SearchString);
+            SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
+        }
+
+        private void RefreshAfterUseAction()
+        {
+            // !!!
+            _installedPackagesLoader.StartLoadInstalledPackagesTask(Model.Context.Projects);
+            _installedLoader.StartLoadTask(
+                _installedPackagesLoader,
+                ActiveSource,
+                Model.Context.PackageManager,
+                IncludePrerelease,
+                _windowSearchHost.SearchQuery.SearchString);
+
+            if (ShowInstalled || ShowUpdatesAvailable)
+            {
+                // refresh the whole package list                
+                SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
+            }
+            else
+            {
+                var installedPackages = GetInstalledPackages(Model.Context.Projects);
+
+                // in this case, we only need to update PackageStatus of
+                // existing items in the package list
+                foreach (var item in _packageList.Items)
+                {
+                    var package = item as SearchResultPackageMetadata;
+                    if (package == null)
+                    {
+                        continue;
+                    }
+
+                    package.BackgroundLoader = new Lazy<Task<BackgroundLoaderResult>>(async () => await GetPackageInfo(
+                       package.Id,
+                       installedPackages,
+                       package.Versions));
+                }
+            }
+
+            RefreshAvailableUpdatesCount();
+        }
+
+        // Called after user installs/uninstalls package(s).
         internal void UpdatePackageStatus()
         {
+            RefreshAfterUseAction();
+
+            /* !!!
             _installedPackagesLoader.StartLoadInstalledPackagesTask(Model.Context.Projects);
             StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
 
@@ -695,7 +746,7 @@ namespace NuGet.PackageManagement.UI
                 }
             }
 
-            RefreshAvailableUpdatesCount();
+            RefreshAvailableUpdatesCount(); */
         }
 
         private static IReadOnlyList<Packaging.PackageReference> GetInstalledPackages(IEnumerable<NuGetProject> projects)
@@ -777,7 +828,7 @@ namespace NuGet.PackageManagement.UI
                 return;
             }
 
-            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
+            _installedLoader.StartLoadTask(_windowSearchHost.SearchQuery.SearchString);
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
         }
 
@@ -791,9 +842,8 @@ namespace NuGet.PackageManagement.UI
             RegistrySettingUtility.SetBooleanSetting(
                 Constants.IncludePrereleaseRegistryName, 
                 _topPanel.CheckboxPrerelease.IsChecked == true);
-            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
-            SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
-            RefreshAvailableUpdatesCount();
+
+            RefreshAfterActiveSourceOrIncludePrereleaseChanged();
         }
 
         internal class SearchQuery : IVsSearchQuery
@@ -818,13 +868,12 @@ namespace NuGet.PackageManagement.UI
 
         public void ClearSearch()
         {
-            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
-            SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
+            RefreshAfterSearchTextChanged();
         }
 
         public IVsSearchTask CreateSearch(uint dwCookie, IVsSearchQuery pSearchQuery, IVsSearchCallback pSearchCallback)
         {
-            SearchPackageInActivePackageSource(pSearchQuery.SearchString);
+            RefreshAfterSearchTextChanged();
             return null;
         }
 
