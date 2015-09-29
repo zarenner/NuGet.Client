@@ -112,6 +112,7 @@ namespace NuGet.PackageManagement.UI
             // !!!
             _browseLoader = new BrowseLoader();
             _installedLoader = new InstalledLoader();
+            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
 
             // UI is initialized. Start the first search
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
@@ -132,6 +133,18 @@ namespace NuGet.PackageManagement.UI
             }
 
             _missingPackageStatus = false;
+        }
+
+        private void StartInstallerLoader(string searchText)
+        {
+            _installedLoader.SetOptions(
+                IncludePrerelease,
+                ActiveSource,
+                Model.Context.PackageManager,
+                Model.Context.Projects,
+                _installedPackagesLoader,
+                searchText);
+            _installedLoader.StartLoadTask();
         }
 
         public PackageRestoreBar RestoreBar => _restoreBar;
@@ -243,6 +256,7 @@ namespace NuGet.PackageManagement.UI
                             ActiveSource.PackageSource.Source)))
                 {
                     SaveSettings();
+                    StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
                     SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
                     RefreshAvailableUpdatesCount();
                 }
@@ -540,16 +554,6 @@ namespace NuGet.PackageManagement.UI
                     }
                     else if (_topPanel.Filter == Filter.Installed)
                     {
-                        var localResource = await Model.Context.PackageManager
-                            .PackagesFolderSourceRepository
-                            .GetResourceAsync<UIMetadataResource>();
-                        _installedLoader.SetOptions(
-                            IncludePrerelease,
-                            ActiveSource,
-                            localResource,
-                            Model.Context.Projects,
-                            _installedPackagesLoader,
-                            searchText);
                         await _packageList.LoadAsync(_installedLoader);
                     }
                     else
@@ -646,6 +650,7 @@ namespace NuGet.PackageManagement.UI
 
                 Model.Context.SourceProvider.PackageSourceProvider.SaveActivePackageSource(ActiveSource.PackageSource);
                 SaveSettings();
+                StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
                 SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
                 RefreshAvailableUpdatesCount();
             }
@@ -661,9 +666,12 @@ namespace NuGet.PackageManagement.UI
 
         internal void UpdatePackageStatus()
         {
+            _installedPackagesLoader.StartLoadInstalledPackagesTask(Model.Context.Projects);
+            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
+
             if (ShowInstalled || ShowUpdatesAvailable)
             {
-                // refresh the whole package list
+                // refresh the whole package list                
                 SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
             }
             else
@@ -769,6 +777,7 @@ namespace NuGet.PackageManagement.UI
                 return;
             }
 
+            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
         }
 
@@ -782,6 +791,7 @@ namespace NuGet.PackageManagement.UI
             RegistrySettingUtility.SetBooleanSetting(
                 Constants.IncludePrereleaseRegistryName, 
                 _topPanel.CheckboxPrerelease.IsChecked == true);
+            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
             RefreshAvailableUpdatesCount();
         }
@@ -808,6 +818,7 @@ namespace NuGet.PackageManagement.UI
 
         public void ClearSearch()
         {
+            StartInstallerLoader(_windowSearchHost.SearchQuery.SearchString);
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
         }
 
