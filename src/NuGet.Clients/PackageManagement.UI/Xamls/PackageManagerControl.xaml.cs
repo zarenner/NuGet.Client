@@ -18,6 +18,7 @@ using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.Protocol.VisualStudio;
 using NuGet.Resolver;
+using NuGet.Versioning;
 using Resx = NuGet.PackageManagement.UI;
 
 namespace NuGet.PackageManagement.UI
@@ -48,6 +49,16 @@ namespace NuGet.PackageManagement.UI
 
         public PackageManagerModel Model { get; }
 
+        private readonly InstalledPackagesLoader _installedPackagesLoader;
+
+        private BrowseLoader _browseLoader;
+        private InstalledLoader _installedLoader;
+
+        /* !!!
+        private ILoader _installedLoader;
+        private ILoader _updatesAvailableLoader; */
+
+            
         public PackageManagerControl(
             PackageManagerModel model,
             Configuration.ISettings nugetSettings,
@@ -93,6 +104,14 @@ namespace NuGet.PackageManagement.UI
             ApplySettings(settings, nugetSettings);
 
             _initialized = true;
+
+            _installedPackagesLoader = new InstalledPackagesLoader();
+            _installedPackagesLoader.StartLoadInstalledPackagesTask(Model.Context.Projects);
+
+            // Create Loaders
+            // !!!
+            _browseLoader = new BrowseLoader();
+            _installedLoader = new InstalledLoader();
 
             // UI is initialized. Start the first search
             SearchPackageInActivePackageSource(_windowSearchHost.SearchQuery.SearchString);
@@ -508,15 +527,35 @@ namespace NuGet.PackageManagement.UI
         {
             NuGetUIThreadHelper.JoinableTaskFactory.RunAsync(async delegate
                 {
-                    var option = new PackageLoaderOption(_topPanel.Filter, IncludePrerelease);
-                    var loader = new PackageLoader(
-                        option,
-                        Model.Context.PackageManager,
-                        Model.Context.Projects,
-                        ActiveSource,
-                        searchText);
-                    await loader.InitializeAsync();
-                    await _packageList.LoadAsync(loader);
+                    // !!! check filter
+                    if (_topPanel.Filter == Filter.All)
+                    {
+                        _browseLoader.SetOptions(
+                            IncludePrerelease,
+                            ActiveSource,
+                            Model.Context.Projects,
+                            _installedPackagesLoader,
+                            searchText);
+                        await _packageList.LoadAsync(_browseLoader);
+                    }
+                    else if (_topPanel.Filter == Filter.Installed)
+                    {
+                        var localResource = await Model.Context.PackageManager
+                            .PackagesFolderSourceRepository
+                            .GetResourceAsync<UIMetadataResource>();
+                        _installedLoader.SetOptions(
+                            IncludePrerelease,
+                            ActiveSource,
+                            localResource,
+                            Model.Context.Projects,
+                            _installedPackagesLoader,
+                            searchText);
+                        await _packageList.LoadAsync(_installedLoader);
+                    }
+                    else
+                    {
+                        // updates available
+                    }
                 });
         }
 

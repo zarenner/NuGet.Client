@@ -526,7 +526,7 @@ namespace NuGet.PackageManagement.UI
                 cancellationToken.ThrowIfCancellationRequested();
                 resultCount++;
 
-                var searchResultPackage = new SearchResultPackageMetadata(_sourceRepository);
+                var searchResultPackage = new SearchResultPackageMetadata();
                 searchResultPackage.Id = package.Identity.Id;
                 searchResultPackage.Version = package.Identity.Version;
                 searchResultPackage.IconUrl = package.IconUrl;

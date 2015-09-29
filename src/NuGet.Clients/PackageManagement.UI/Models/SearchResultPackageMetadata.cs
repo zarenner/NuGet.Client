@@ -179,13 +179,6 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
-        public SearchResultPackageMetadata(SourceRepository source)
-        {
-            Source = source;
-        }
-
-        public SourceRepository Source { get; }
-
         public Uri IconUrl { get; set; }
 
         public Lazy<Task<IEnumerable<VersionInfo>>> Versions { get; set; }
