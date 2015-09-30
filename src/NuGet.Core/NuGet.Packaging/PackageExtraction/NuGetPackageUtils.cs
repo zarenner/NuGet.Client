@@ -35,27 +35,51 @@ namespace NuGet.Packaging
             var targetNupkg = packagePathResolver.GetPackageFilePath(packageIdentity.Id, packageIdentity.Version);
             var hashPath = packagePathResolver.GetHashPath(packageIdentity.Id, packageIdentity.Version);
 
+            var targetTempNupkg = Path.Combine(targetPath, Path.GetRandomFileName());
+
             // Acquire the lock on a nukpg before we extract it to prevent the race condition when multiple
             // processes are extracting to the same destination simultaneously
             await ConcurrencyUtilities.ExecuteWithFileLocked(targetNupkg,
                 action: async cancellationToken =>
                 {
+                    // in the rare case that a left over temp file was left behind, remove it
+                    if (File.Exists(targetTempNupkg))
+                    {
+                        File.Delete(targetTempNupkg);
+                    }
+
                     // If this is the first process trying to install the target nupkg, go ahead
                     // After this process successfully installs the package, all other processes
                     // waiting on this lock don't need to install it again.
-                    if (!File.Exists(targetNupkg))
+                    if (!File.Exists(hashPath))
                     {
-                        log.LogInformation(string.Format(CultureInfo.CurrentCulture, Strings.Log_InstallingPackage, packageIdentity.Id, packageIdentity.Version));
+                        log.LogInformation(string.Format(CultureInfo.CurrentCulture,
+                            Strings.Log_InstallingPackage,
+                            packageIdentity.Id,
+                            packageIdentity.Version));
 
                         cancellationToken.ThrowIfCancellationRequested();
 
                         // Do not stop the package extraction after this point
-                        // based on CancellationToken
-
+                        // based on CancellationToken, but things can still be stopped if the process is killed
                         Directory.CreateDirectory(targetPath);
 
+                        // If we had a broken restore, clean out the files first
+                        var info = new DirectoryInfo(targetPath);
+
+                        foreach (var file in info.GetFiles())
+                        {
+                            file.Delete();
+                        }
+
+                        foreach (var dir in info.GetDirectories())
+                        {
+                            dir.Delete(true);
+                        }
+
+                        // Extract the nupkg
                         using (var nupkgStream = new FileStream(
-                            targetNupkg,
+                            targetTempNupkg,
                             FileMode.Create,
                             FileAccess.ReadWrite,
                             FileShare.ReadWrite | FileShare.Delete,
@@ -77,7 +101,16 @@ namespace NuGet.Packaging
                             FixNuSpecIdCasing(nuspecFile, targetNuspec, packageIdentity.Id);
                         }
 
-                        using (var nupkgStream = File.Open(targetNupkg, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        // Some packages accidentally include a nupkg with the same name as the package
+                        if (File.Exists(targetNupkg))
+                        {
+                            File.Delete(targetNupkg);
+                        }
+
+                        // Now rename the tmp file
+                        File.Move(targetTempNupkg, targetNupkg);
+
+                        using (var nupkgStream = File.Open(targetTempNupkg, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
                             string packageHash;
                             using (var sha512 = SHA512.Create())
@@ -85,8 +118,8 @@ namespace NuGet.Packaging
                                 packageHash = Convert.ToBase64String(sha512.ComputeHash(nupkgStream));
                             }
 
-                            // Note: PackageRepository relies on the hash file being written out as the final operation as part of a package install
-                            // to assume a package was fully installed.
+                            // Note: PackageRepository relies on the hash file being written out as the
+                            // final operation as part of a package install to assume a package was fully installed.
                             File.WriteAllText(hashPath, packageHash);
                         }
 
