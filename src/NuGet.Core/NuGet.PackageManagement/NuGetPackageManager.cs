@@ -570,7 +570,7 @@ namespace NuGet.PackageManagement
                 {
                     prunedAvailablePackages = PrunePackageTree.PrunePreleaseForStableTargets(
                         prunedAvailablePackages,
-                        targets: Enumerable.Empty<PackageIdentity>(),
+                        targets: preferredVersions.Values,
                         packagesToInstall: Enumerable.Empty<PackageIdentity>());
                 }
 
