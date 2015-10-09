@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -30,6 +31,10 @@ namespace NuGet.Packaging
         private const string FrameworkAssembly = "frameworkAssembly";
         private const string AssemblyName = "assemblyName";
         private const string Language = "language";
+        private const string BuildActions = "buildActions";
+        private const string BuildAction = "buildAction";
+        private const string Action = "action";
+        private const string DefaultAction = "defaultAction";
         private readonly IFrameworkNameProvider _frameworkProvider;
 
         /// <summary>
@@ -248,6 +253,58 @@ namespace NuGet.Packaging
         {
             var node = MetadataNode.Elements(XName.Get(Language, MetadataNode.GetDefaultNamespace().NamespaceName)).FirstOrDefault();
             return node == null ? null : node.Value;
+        }
+
+        /// <summary>
+        /// Build action groups
+        /// </summary>
+        public IEnumerable<BuildActionGroup> GetBuildActionGroups()
+        {
+            var ns = MetadataNode.GetDefaultNamespace().NamespaceName;
+
+            foreach (var group in MetadataNode
+                .Elements(XName.Get(BuildActions, ns))
+                .Elements(XName.Get(Group, ns)))
+            {
+                var groupFramework = GetAttributeValue(group, TargetFramework);
+
+                var framework = string.IsNullOrEmpty(groupFramework)
+                    ? NuGetFramework.AnyFramework
+                    : NuGetFramework.Parse(groupFramework, _frameworkProvider);
+
+                var defaultAction = GetAttributeValue(group, DefaultAction);
+
+                if (string.IsNullOrEmpty(defaultAction))
+                {
+                    defaultAction = "Compile";
+                }
+
+                var entries = new List<BuildActionEntry>();
+
+                foreach (var node in group.Elements(XName.Get(BuildAction, ns)))
+                {
+                    var file = GetAttributeValue(node, File);
+                    var action = GetAttributeValue(node, Action);
+
+                    if (string.IsNullOrEmpty(file) || string.IsNullOrEmpty(action))
+                    {
+                        // Invalid build action entry
+                        var message = string.Format(
+                            CultureInfo.CurrentCulture, 
+                            Strings.InvalidNuspecEntry, 
+                            BuildAction);
+
+                        throw new PackagingException(message);
+                    }
+
+                    var entry = new BuildActionEntry(file, action);
+                    entries.Add(entry);
+                }
+
+                yield return new BuildActionGroup(framework, entries, defaultAction);
+            }
+
+            yield break;
         }
 
         private static string GetAttributeValue(XElement element, string attributeName)
