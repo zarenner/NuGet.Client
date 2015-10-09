@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using NuGet.ContentModel;
 using NuGet.Frameworks;
 using NuGet.Packaging;
+using NuGet.Packaging.Core;
 using NuGet.ProjectModel;
 using NuGet.Repositories;
 
@@ -170,18 +171,25 @@ namespace NuGet.Commands
             // Shared content items
             var sharedCriteria = targetGraph.Conventions.Criteria.ForFramework(framework);
 
-            var buildActionGroups = nuspec.GetSharedItemGroups().ToList();
-            var buildActionGroup = buildActionGroups.GetNearest(framework);
-
             var sharedContentGroup = contentItems.FindBestItemGroup(
                 sharedCriteria,
                 targetGraph.Conventions.Patterns.SharedContentFiles);
 
             if (sharedContentGroup != null)
             {
-                lockFileLib.SharedContentGroup = sharedContentGroup.Items
-                    .Select(p => new LockFileItem(p.Path))
-                    .ToList();
+                var sharedNuspecGroups = nuspec.GetSharedItemGroups().ToList();
+                var sharedNuspecGroup = sharedNuspecGroups.GetNearest(framework) ??
+                    new SharedContentGroup(NuGetFramework.AnyFramework, new List<SharedContentItem>(),
+                        "Compile",
+                        targetLanguage: null,
+                        copyToOutput: false,
+                        flatten: true);
+
+                var sharedLockFileItems = new List<LockFileItem>();
+
+
+
+                lockFileLib.SharedContentGroup = sharedLockFileItems;
             }
 
             // COMPAT: Support lib/contract so older packages can be consumed
