@@ -31,10 +31,12 @@ namespace NuGet.Packaging
         private const string FrameworkAssembly = "frameworkAssembly";
         private const string AssemblyName = "assemblyName";
         private const string Language = "language";
-        private const string BuildActions = "buildActions";
-        private const string BuildAction = "buildAction";
+        private const string SharedItems = "sharedItems";
+        private const string SharedItem = "sharedItem";
         private const string Action = "action";
-        private const string DefaultAction = "defaultAction";
+        private const string Flatten = "flatten";
+        private const string CopyToOutput = "copyToOutput";
+        private const string TargetLanguage = "targetLanguage";
         private readonly IFrameworkNameProvider _frameworkProvider;
 
         /// <summary>
@@ -258,53 +260,84 @@ namespace NuGet.Packaging
         /// <summary>
         /// Build action groups
         /// </summary>
-        public IEnumerable<BuildActionGroup> GetBuildActionGroups()
+        public IEnumerable<SharedContentGroup> GetSharedItemGroups()
         {
             var ns = MetadataNode.GetDefaultNamespace().NamespaceName;
 
             foreach (var group in MetadataNode
-                .Elements(XName.Get(BuildActions, ns))
+                .Elements(XName.Get(SharedItems, ns))
                 .Elements(XName.Get(Group, ns)))
             {
+                // Read group attributes and defaults
                 var groupFramework = GetAttributeValue(group, TargetFramework);
 
                 var framework = string.IsNullOrEmpty(groupFramework)
                     ? NuGetFramework.AnyFramework
                     : NuGetFramework.Parse(groupFramework, _frameworkProvider);
 
-                var defaultAction = GetAttributeValue(group, DefaultAction);
+                var defaultAction = GetAttributeValue(group, Action);
 
                 if (string.IsNullOrEmpty(defaultAction))
                 {
                     defaultAction = "Compile";
                 }
 
-                var entries = new List<BuildActionEntry>();
+                // This can be null
+                var defaultTargetLanguage = GetAttributeValue(group, TargetLanguage);
 
-                foreach (var node in group.Elements(XName.Get(BuildAction, ns)))
+                var defaultFlatten = AttributeIsTrue(group, Flatten);
+                var defaultCopyToOutput = AttributeIsTrue(group, CopyToOutput);
+
+                // Read group entries
+                var entries = new List<SharedContentItem>();
+
+                foreach (var node in group.Elements(XName.Get(SharedItem, ns)))
                 {
                     var file = GetAttributeValue(node, File);
-                    var action = GetAttributeValue(node, Action);
 
-                    if (string.IsNullOrEmpty(file) || string.IsNullOrEmpty(action))
+                    if (string.IsNullOrEmpty(file))
                     {
                         // Invalid build action entry
                         var message = string.Format(
                             CultureInfo.CurrentCulture, 
                             Strings.InvalidNuspecEntry, 
-                            BuildAction);
+                            SharedItem);
 
                         throw new PackagingException(message);
                     }
 
-                    var entry = new BuildActionEntry(file, action);
+                    var action = GetAttributeValue(node, Action);
+                    var targetLanguage = GetAttributeValue(group, TargetLanguage);
+                    var flatten = AttributeIsTrue(group, Flatten);
+                    var copyToOutput = AttributeIsTrue(group, CopyToOutput);
+
+                    var entry = new SharedContentItem(
+                        file,
+                        action,
+                        targetLanguage,
+                        copyToOutput,
+                        flatten);
+
                     entries.Add(entry);
                 }
 
-                yield return new BuildActionGroup(framework, entries, defaultAction);
+                yield return new SharedContentGroup(
+                    framework,
+                    entries,
+                    defaultAction,
+                    defaultTargetLanguage,
+                    defaultCopyToOutput,
+                    defaultFlatten);
             }
 
             yield break;
+        }
+
+        private static bool AttributeIsTrue(XElement element, string attributeName)
+        {
+            return Boolean.TrueString.Equals(
+                GetAttributeValue(element, attributeName), 
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetAttributeValue(XElement element, string attributeName)

@@ -170,9 +170,13 @@ namespace NuGet.Commands
             // Shared content items
             var sharedCriteria = targetGraph.Conventions.Criteria.ForFramework(framework);
 
+            var buildActionGroups = nuspec.GetSharedItemGroups().ToList();
+            var buildActionGroup = buildActionGroups.GetNearest(framework);
+
             var sharedContentGroup = contentItems.FindBestItemGroup(
                 sharedCriteria,
                 targetGraph.Conventions.Patterns.SharedContentFiles);
+
             if (sharedContentGroup != null)
             {
                 lockFileLib.SharedContentGroup = sharedContentGroup.Items
