@@ -35,6 +35,7 @@ namespace NuGet.ProjectModel
         private const string RuntimeProperty = "runtime";
         private const string CompileProperty = "compile";
         private const string NativeProperty = "native";
+        private const string SharedProperty = "shared";
         private const string ResourceProperty = "resource";
         private const string TypeProperty = "type";
 
@@ -294,6 +295,13 @@ namespace NuGet.ProjectModel
                 var ordered = library.NativeLibraries.OrderBy(assembly => assembly.Path);
 
                 json[NativeProperty] = WriteObject(ordered, WriteFileItem);
+            }
+
+            if (library.SharedContentGroup.Count > 0)
+            {
+                var ordered = library.SharedContentGroup.OrderBy(assembly => assembly.Path);
+
+                json[SharedProperty] = WriteObject(ordered, WriteFileItem);
             }
 
             return new JProperty(library.Name + "/" + library.Version.ToNormalizedString(), json);

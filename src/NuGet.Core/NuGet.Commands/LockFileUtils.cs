@@ -167,8 +167,11 @@ namespace NuGet.Commands
                 lockFileLib.NativeLibraries = nativeGroup.Items.Select(p => new LockFileItem(p.Path)).ToList();
             }
 
+            // Shared content items
+            var sharedCriteria = targetGraph.Conventions.Criteria.ForFramework(framework);
+
             var sharedContentGroup = contentItems.FindBestItemGroup(
-                nativeCriteria, 
+                sharedCriteria,
                 targetGraph.Conventions.Patterns.SharedContentFiles);
             if (sharedContentGroup != null)
             {
