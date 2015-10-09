@@ -27,6 +27,8 @@ namespace NuGet.ProjectModel
 
         public IList<LockFileItem> NativeLibraries { get; set; } = new List<LockFileItem>();
 
+        public IList<LockFileItem> SharedContentGroup { get; set; } = new List<LockFileItem>();
+
         public bool Equals(LockFileTargetLibrary other)
         {
             if (other == null)

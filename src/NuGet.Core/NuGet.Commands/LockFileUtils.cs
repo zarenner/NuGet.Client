@@ -167,6 +167,16 @@ namespace NuGet.Commands
                 lockFileLib.NativeLibraries = nativeGroup.Items.Select(p => new LockFileItem(p.Path)).ToList();
             }
 
+            var sharedContentGroup = contentItems.FindBestItemGroup(
+                nativeCriteria, 
+                targetGraph.Conventions.Patterns.SharedContentFiles);
+            if (sharedContentGroup != null)
+            {
+                lockFileLib.SharedContentGroup = sharedContentGroup.Items
+                    .Select(p => new LockFileItem(p.Path))
+                    .ToList();
+            }
+
             // COMPAT: Support lib/contract so older packages can be consumed
             var contractPath = "lib/contract/" + package.Id + ".dll";
             var hasContract = files.Any(path => path == contractPath);

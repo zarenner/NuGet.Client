@@ -249,6 +249,11 @@ namespace NuGet.Client
             /// </summary>
             public PatternSet MSBuildFiles { get; }
 
+            /// <summary>
+            /// Pattern used to identify shared content files
+            /// </summary>
+            public PatternSet SharedContentFiles { get; }
+
             internal ManagedCodePatterns(ManagedCodeConventions conventions)
             {
                 AnyTargettedFile = new PatternSet(
@@ -338,6 +343,25 @@ namespace NuGet.Client
                         new PatternDefinition("build/{msbuild}", defaults: new Dictionary<string, object>
                         {
                             { "tfm", new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.Net, FrameworkConstants.EmptyVersion) }
+                        })
+                    });
+
+                SharedContentFiles = new PatternSet(
+                    conventions.Properties,
+                    groupPatterns: new PatternDefinition[]
+                    {
+                        "shared/{tfm}/{any?}",
+                        new PatternDefinition("shared.any/{any?}", defaults: new Dictionary<string, object>
+                        {
+                            { "tfm", NuGetFramework.AnyFramework }
+                        })
+                    },
+                    pathPatterns: new PatternDefinition[]
+                    {
+                        "shared/{tfm}/{any?}",
+                        new PatternDefinition("shared.any/{any?}", defaults: new Dictionary<string, object>
+                        {
+                            { "tfm", NuGetFramework.AnyFramework }
                         })
                     });
             }
