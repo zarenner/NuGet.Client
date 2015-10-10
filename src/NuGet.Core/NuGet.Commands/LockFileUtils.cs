@@ -180,14 +180,78 @@ namespace NuGet.Commands
                 var sharedNuspecGroups = nuspec.GetSharedItemGroups().ToList();
                 var sharedNuspecGroup = sharedNuspecGroups.GetNearest(framework) ??
                     new SharedContentGroup(NuGetFramework.AnyFramework, new List<SharedContentItem>(),
-                        "Compile",
+                        PackagingConstants.SharedContentDefaultBuildAction,
                         targetLanguage: null,
                         copyToOutput: false,
                         flatten: true);
 
+                var itemLookup = new Dictionary<string, SharedContentItem>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var item in sharedNuspecGroup.SharedContentItems)
+                {
+                    if (!itemLookup.ContainsKey(item.File))
+                    {
+                        itemLookup.Add(item.File, item);
+                    }
+                }
+
                 var sharedLockFileItems = new List<LockFileItem>();
 
+                foreach (var item in sharedContentGroup.Items)
+                {
+                    LockFileItem lockFileItem = new LockFileItem(item.Path);
 
+                    var action = sharedNuspecGroup.Action;
+                    var copyToOutput = sharedNuspecGroup.CopyToOutput;
+                    var flatten = sharedNuspecGroup.Flatten;
+                    var targetLanguage = sharedNuspecGroup.TargetLanguage;
+
+                    SharedContentItem sharedContentItem;
+                    if (itemLookup.TryGetValue(item.Path, out sharedContentItem))
+                    {
+                        if (!string.IsNullOrEmpty(sharedContentItem.Action))
+                        {
+                            action = sharedContentItem.Action;
+                        }
+
+                        if (!string.IsNullOrEmpty(sharedContentItem.TargetLanguage))
+                        {
+                            targetLanguage = sharedContentItem.TargetLanguage;
+                        }
+
+                        if (sharedContentItem.CopyToOutput.HasValue)
+                        {
+                            copyToOutput = sharedContentItem.CopyToOutput.Value;
+                        }
+
+                        if (sharedContentItem.Flatten.HasValue)
+                        {
+                            copyToOutput = sharedContentItem.Flatten.Value;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(action))
+                    {
+                        lockFileItem.Properties.Add("buildAction", action);
+                    }
+
+                    if (!string.IsNullOrEmpty(targetLanguage))
+                    {
+                        lockFileItem.Properties.Add("targetLanguage", targetLanguage);
+                    }
+
+                    if (copyToOutput)
+                    {
+                        lockFileItem.Properties.Add("copyToOutput", Boolean.TrueString);
+                    }
+
+                    if (flatten)
+                    {
+                        lockFileItem.Properties.Add("flatten", Boolean.TrueString);
+                    }
+
+                    sharedLockFileItems.Add(lockFileItem);
+                }
 
                 lockFileLib.SharedContentGroup = sharedLockFileItems;
             }

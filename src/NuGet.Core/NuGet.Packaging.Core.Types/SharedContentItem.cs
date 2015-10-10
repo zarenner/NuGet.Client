@@ -21,13 +21,13 @@ namespace NuGet.Packaging.Core
         /// <summary>
         /// If true the item will be copied to the output folder.
         /// </summary>
-        public bool CopyToOutput { get; }
+        public bool? CopyToOutput { get; }
 
         /// <summary>
         /// If true the content items will keep the same folder structure in the output
         /// folder.
         /// </summary>
-        public bool Flatten { get; }
+        public bool? Flatten { get; }
 
         /// <summary>
         /// Programming language this content is specific to.
@@ -47,8 +47,8 @@ namespace NuGet.Packaging.Core
             string file, 
             string action, 
             string targetLanguage, 
-            bool copyToOutput, 
-            bool flatten)
+            bool? copyToOutput, 
+            bool? flatten)
         {
             if (file == null)
             {

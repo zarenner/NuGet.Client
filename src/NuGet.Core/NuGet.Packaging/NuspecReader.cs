@@ -279,14 +279,14 @@ namespace NuGet.Packaging
 
                 if (string.IsNullOrEmpty(defaultAction))
                 {
-                    defaultAction = "Compile";
+                    defaultAction = PackagingConstants.SharedContentDefaultBuildAction;
                 }
 
                 // This can be null
                 var defaultTargetLanguage = GetAttributeValue(group, TargetLanguage);
 
-                var defaultFlatten = AttributeIsTrue(group, Flatten);
-                var defaultCopyToOutput = AttributeIsTrue(group, CopyToOutput);
+                var defaultFlatten = AttributeAsNullableBool(group, Flatten) ?? true;
+                var defaultCopyToOutput = AttributeAsNullableBool(group, CopyToOutput) ?? false;
 
                 // Read group entries
                 var entries = new List<SharedContentItem>();
@@ -300,16 +300,16 @@ namespace NuGet.Packaging
                         // Invalid build action entry
                         var message = string.Format(
                             CultureInfo.CurrentCulture, 
-                            Strings.InvalidNuspecEntry, 
-                            SharedItem);
+                            Strings.InvalidNuspecEntry,
+                            node.ToString().Trim());
 
                         throw new PackagingException(message);
                     }
 
                     var action = GetAttributeValue(node, Action);
                     var targetLanguage = GetAttributeValue(group, TargetLanguage);
-                    var flatten = AttributeIsTrue(group, Flatten);
-                    var copyToOutput = AttributeIsTrue(group, CopyToOutput);
+                    var flatten = AttributeAsNullableBool(group, Flatten);
+                    var copyToOutput = AttributeAsNullableBool(group, CopyToOutput);
 
                     var entry = new SharedContentItem(
                         file,
@@ -333,11 +333,34 @@ namespace NuGet.Packaging
             yield break;
         }
 
-        private static bool AttributeIsTrue(XElement element, string attributeName)
+        private static bool? AttributeAsNullableBool(XElement element, string attributeName)
         {
-            return Boolean.TrueString.Equals(
-                GetAttributeValue(element, attributeName), 
-                StringComparison.OrdinalIgnoreCase);
+            bool? result = null;
+
+            var attributeValue = GetAttributeValue(element, attributeName);
+
+            if (attributeValue != null)
+            {
+                if (Boolean.TrueString.Equals(attributeValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    result = true;
+                }
+                else if (Boolean.FalseString.Equals(attributeValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    result = false;
+                }
+                else
+                {
+                    var message = string.Format(
+                            CultureInfo.CurrentCulture,
+                            Strings.InvalidNuspecEntry,
+                            element.ToString().Trim());
+
+                    throw new PackagingException(message);
+                }
+            }
+
+            return result;
         }
 
         private static string GetAttributeValue(XElement element, string attributeName)
