@@ -2150,6 +2150,7 @@ namespace NuGet.Test
         public async Task TestPacManPreviewUpdatePackageWithTargetPrereleaseInProject()
         {
             // Arrange
+<<<<<<< HEAD
 
             // Set up Package Source
             var packages = new List<SourcePackageDependencyInfo>
@@ -2211,7 +2212,6 @@ namespace NuGet.Test
             // Arrange
 
             // Set up Package Source
-
             var packages = new List<SourcePackageDependencyInfo>
             {
                 new SourcePackageDependencyInfo("a", new NuGetVersion(1, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
@@ -2243,7 +2243,6 @@ namespace NuGet.Test
                 new TestDeleteOnRestartManager());
 
             // Main Act
-
             var result = await nuGetPackageManager.PreviewUpdatePackagesAsync(
                 nuGetProject,
                 new ResolutionContext(),
@@ -4266,12 +4265,6 @@ namespace NuGet.Test
             var packageSourceProvider = new TestPackageSourceProvider(new[] { packageSource });
 
             return new SourceRepositoryProvider(packageSourceProvider, resourceProviders);
-        }
-
-        private static void Expected(List<Tuple<PackageIdentity, NuGetProjectActionType>> expected, string id, NuGetVersion oldVersion, NuGetVersion newVersion)
-        {
-            expected.Add(Tuple.Create(new PackageIdentity(id, oldVersion), NuGetProjectActionType.Uninstall));
-            expected.Add(Tuple.Create(new PackageIdentity(id, newVersion), NuGetProjectActionType.Install));
         }
 
         private static bool Compare(
