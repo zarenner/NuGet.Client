@@ -584,10 +584,10 @@ namespace NuGet.PackageManagement
 
                 if (!resolutionContext.IncludePrerelease)
                 {
-                    prunedAvailablePackages = PrunePackageTree.PrunePreleaseForStableTargets(
+                    prunedAvailablePackages = PrunePackageTree.PrunePrereleaseExceptAllowed(
                         prunedAvailablePackages,
-                        targets: Enumerable.Empty<PackageIdentity>(),
-                        packagesToInstall: Enumerable.Empty<PackageIdentity>());
+                        oldListOfInstalledPackages,
+                        isUpdateAll: (packageId == null && packageIdentity == null));
                 }
 
                 // Remove packages that do not meet the constraints specified in the UpdateConstrainst
