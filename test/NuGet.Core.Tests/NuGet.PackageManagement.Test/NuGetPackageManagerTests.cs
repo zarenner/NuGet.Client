@@ -2150,7 +2150,6 @@ namespace NuGet.Test
         public async Task TestPacManPreviewUpdatePackageWithTargetPrereleaseInProject()
         {
             // Arrange
-<<<<<<< HEAD
 
             // Set up Package Source
             var packages = new List<SourcePackageDependencyInfo>
@@ -2313,7 +2312,7 @@ namespace NuGet.Test
         }
 
         [Fact]
-        public async Task TestPacManPreviewMultiUpdate()
+        public async Task TestPacManPreviewUpdateMulti()
         {
             // Arrange
 
@@ -2324,8 +2323,8 @@ namespace NuGet.Test
                 new SourcePackageDependencyInfo("a", new NuGetVersion(2, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
                 new SourcePackageDependencyInfo("a", new NuGetVersion(3, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
                 new SourcePackageDependencyInfo("b", new NuGetVersion(1, 0, 0), new[] { new Packaging.Core.PackageDependency("a", new VersionRange(new NuGetVersion(1, 0, 0))) }, true, null),
-                new SourcePackageDependencyInfo("b", new NuGetVersion(2, 0, 0), new[] { new Packaging.Core.PackageDependency("a", new VersionRange(new NuGetVersion(1, 0, 0))) }, true, null),
-                new SourcePackageDependencyInfo("b", new NuGetVersion(3, 0, 0), new[] { new Packaging.Core.PackageDependency("a", new VersionRange(new NuGetVersion(1, 0, 0))) }, true, null),
+                new SourcePackageDependencyInfo("b", new NuGetVersion(2, 0, 0), new[] { new Packaging.Core.PackageDependency("a", new VersionRange(new NuGetVersion(2, 0, 0))) }, true, null),
+                new SourcePackageDependencyInfo("b", new NuGetVersion(3, 0, 0), new[] { new Packaging.Core.PackageDependency("a", new VersionRange(new NuGetVersion(2, 0, 0))) }, true, null),
                 new SourcePackageDependencyInfo("c", new NuGetVersion(1, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
                 new SourcePackageDependencyInfo("c", new NuGetVersion(2, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
                 new SourcePackageDependencyInfo("c", new NuGetVersion(3, 0, 0), new Packaging.Core.PackageDependency[] { }, true, null),
@@ -2387,6 +2386,7 @@ namespace NuGet.Test
             var resulting = result.Select(a => Tuple.Create(a.PackageIdentity, a.NuGetProjectActionType)).ToArray();
 
             var expected = new List<Tuple<PackageIdentity, NuGetProjectActionType>>();
+            Expected(expected, "a", new NuGetVersion(1, 0, 0), new NuGetVersion(2, 0, 0));
             Expected(expected, "b", new NuGetVersion(1, 0, 0), new NuGetVersion(2, 0, 0));
             Expected(expected, "c", new NuGetVersion(2, 0, 0), new NuGetVersion(3, 0, 0));
             Expected(expected, "d", new NuGetVersion(2, 0, 0), new NuGetVersion(3, 0, 0));
