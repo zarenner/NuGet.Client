@@ -399,6 +399,9 @@ namespace NuGet.PackageManagement
             }
         }
 
+        /// <summary>
+        /// Update Package logic specific to build integrated style NuGet projects
+        /// </summary>
         private async Task<IEnumerable<NuGetProjectAction>> PreviewUpdatePackagesForBuildIntegratedAsync(
                 string packageId,
                 List<PackageIdentity> packageIdentities,
@@ -416,6 +419,8 @@ namespace NuGet.PackageManagement
             if (packageIdentities.Count == 0 && packageId == null)
             {
                 // Update-Package  all
+
+                //TODO: need to consider whether Update ALL simply does nothing for Build Integrated projects
 
                 var lowLevelActions = new List<NuGetProjectAction>();
 
@@ -459,6 +464,9 @@ namespace NuGet.PackageManagement
             }
             else
             {
+                //TODO: Two cases to deal with - we have been given the id in which case we find the latest
+                //      otherwise we just create actions for the PackageIdentities we have been given
+
                 // Find the id from either the package identity or the packageId directly.
                 var installedPackageId = packageIdentities.FirstOrDefault()?.Id ?? packageId;
 
@@ -523,6 +531,9 @@ namespace NuGet.PackageManagement
             return actions;
         }
  
+        /// <summary>
+        /// Update Package logic specific to classic style NuGet projects
+        /// </summary>
         private async Task<IEnumerable<NuGetProjectAction>> PreviewUpdatePackagesForClassicAsync(
                 string packageId,
                 List<PackageIdentity> packageIdentities,
